@@ -32,7 +32,7 @@ class BlobStorageSettings(BaseModel):
     endpoint: str
     authentication_mode: BlobStorageAuthenticationMode
 
-    # PUBLIC-LOCAL
+    # PUBLIC-WSL2
     # account_key is required only when using Azurite.
     account_key: str | None = None
 
@@ -40,7 +40,7 @@ class BlobStorageSettings(BaseModel):
     # Azure Storage with service_principal authentication.
     azure_tenant_id: str | None = None
 
-    # PRIVATE-LOCAL / AZURE-ASE
+    # PRIVATE-LOCAL / AZURE-PUBLIC-APP-SERVICE / AZURE-PRIVATE-ASE
     # Service Principal client ID or user-assigned managed identity client ID.
     azure_client_id: str | None = None
 
@@ -60,7 +60,7 @@ class EmbeddingProfileSettings(BaseModel):
     document_chunk_size: int = Field(gt=0)
     document_chunk_overlap: int = Field(ge=0)
 
-    # PUBLIC-LOCAL
+    # PUBLIC-WSL2
     # OpenRouter profile with api_key authentication.
     openrouter_api_key: str | None = None
 
@@ -74,7 +74,7 @@ class EmbeddingProfileSettings(BaseModel):
     # Azure Storage or Azure OpenAI profile with service_principal authentication.
     azure_client_secret: str | None = None
 
-    # PRIVATE-LOCAL / AZURE-ASE
+    # PRIVATE-LOCAL / AZURE-PUBLIC-APP-SERVICE / AZURE-PRIVATE-ASE
     # client ID :: Service Principal or user-assigned managed identity client ID.
     azure_client_id: str | None = None
 

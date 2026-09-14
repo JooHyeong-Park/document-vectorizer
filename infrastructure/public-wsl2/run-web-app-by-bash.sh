@@ -4,7 +4,7 @@ set -Eeuo pipefail
 
 SCRIPT_DIRECTORY="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd -- "${SCRIPT_DIRECTORY}/../.." && pwd)"
-ENV_FILE="${SCRIPT_DIRECTORY}/_public-local-variables-by-image"
+ENV_FILE="${SCRIPT_DIRECTORY}/_public-wsl2-variables-by-image"
 PYTHON_RUNTIME_ROOT="${HOME}/runtimes/python-3.13.15"
 PYTHON_RUNTIME_BIN="${PYTHON_RUNTIME_ROOT}/bin"
 PYTHON_SITE_PACKAGES="${PYTHON_RUNTIME_ROOT}/lib/python3.13/site-packages"
@@ -34,16 +34,11 @@ fi
 export PATH="${PYTHON_RUNTIME_BIN}:${PATH}"
 export PYTHONPATH="${PROJECT_ROOT}/src:${PYTHON_SITE_PACKAGES}${PYTHONPATH:+:${PYTHONPATH}}"
 
-exec python -m adapters.commands.commands_dispatcher "$@"
+exec python -m adapters.azure_web_app.fastapi_app
 
-# Run one document:
-# COMMAND='/api/documents/process'
-# PAYLOAD='{"blob_path":"documents/01/01-sample.csv"}'
-# ./infrastructure/public-local/run-command-by-local.sh "${COMMAND}" \
-#   --payload "${PAYLOAD}"
-#
-# Run all sample documents:
-# COMMAND='/api/documents/process'
+# Verification:
+# BASE_URL='http://127.0.0.1:8080/api'
+# curl --fail "${BASE_URL}/health"
 # for blob_path in \
 #   'documents/01/01-sample.csv' \
 #   'documents/01/02-sample.docx' \
@@ -51,6 +46,7 @@ exec python -m adapters.commands.commands_dispatcher "$@"
 #   'documents/01/04-sample.pptx' \
 #   'documents/01/05-sample.pdf'; do
 #   PAYLOAD="{\"blob_path\":\"${blob_path}\"}"
-#   ./infrastructure/public-local/run-command-by-local.sh "${COMMAND}" \
-#     --payload "${PAYLOAD}"
+#   curl --fail --request POST "${BASE_URL}/documents/process" \
+#     --header 'Content-Type: application/json' \
+#     --data "${PAYLOAD}"
 # done

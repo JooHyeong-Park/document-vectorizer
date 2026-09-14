@@ -24,7 +24,6 @@
 ├── Dockerfile.web-app          # Web App 이미지 정의
 ├── function_app.py             # Azure Functions host 진입점
 ├── host.json                   # Azure Functions host 설정
-├── local.settings.json         # 로컬 Functions host 설정
 ├── pyproject.toml              # Python 프로젝트 설정
 ├── README.md                   # 프로젝트 안내
 └── requirements.txt            # Azure Function App 필수 dependency manifest

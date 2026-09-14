@@ -1,10 +1,10 @@
 # 실행 환경 정의
 
-프로젝트는 Local 개발, 내부망 통합 검증 및 Azure 배포 환경을 지원한다.
+프로젝트는 Local 개발, 내부망 통합 검증 및 Public/Private Azure 배포 환경을 지원한다.
 
 - 동일 소스를 각 환경에서 사용한다.
 
-## 1. PUBLIC-LOCAL
+## 1. PUBLIC-WSL2
 
 Public Internet 접속, AI Agent 기반 개발이 가능한 Local 개발 환경
 
@@ -45,7 +45,7 @@ Database    -> 실제 Azure PostgreSQL Private Endpoint
 AI          -> 실제 Azure OpenAI Private Endpoint
 ```
 
-## 3. AZURE-ASE
+## 3. AZURE-PRIVATE-ASE
 
 Azure App Service Environment (ASE) 기반 실제 Azure NP/운영 배포 환경
 
@@ -57,4 +57,16 @@ Function App  -> Azure Functions Python 3.13 공식 이미지 기반 Container-b
 Blob          -> Azure Blob Storage / Private Endpoint
 Database      -> Azure PostgreSQL / Private Endpoint
 AI            -> Azure OpenAI / Private Endpoint
+```
+
+## 4. AZURE-PUBLIC-APP-SERVICE
+
+Public Internet 접속이 가능한 Azure App Service 기반 배포 환경
+
+```text
+Web App       -> python:3.13-slim 기반 Container-based Azure Web App
+Function App  -> Azure Functions Python 3.13 공식 이미지 기반 Container-based Azure Function App
+Blob          -> Azure Blob Storage
+Database      -> Azure PostgreSQL
+AI            -> Azure OpenAI
 ```

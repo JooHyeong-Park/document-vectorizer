@@ -1,4 +1,4 @@
-# Public local runtime configuration.
+# Public WSL2 runtime configuration.
 # The OpenRouter API key is supplied separately at runtime.
 
 ### Function App only
@@ -18,7 +18,7 @@ AzureWebJobsStorage=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;A
 
 ### Shared application runtime
 
-# Required for PUBLIC-LOCAL and PRIVATE-LOCAL; not required for ENV-AZURE.
+# Required for PUBLIC-WSL2 and PRIVATE-LOCAL; not required for ENV-AZURE.
 VECTORIZE_SETTINGS_PROFILE=public
 
 BLOB_STORAGES__DEFAULT__ENDPOINT=http://document-vectorizer-azurite:10000/devstoreaccount1

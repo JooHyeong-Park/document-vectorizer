@@ -14,7 +14,7 @@ requirements 파일에 기록하지 않는다.
 
 ## 2. Python 및 pip 확인
 
-PUBLIC-LOCAL (WSL2) 에서는 `install-portable-python-3-13-for-wsl2.sh` 를 먼저 실행한다.
+PUBLIC-WSL2 에서는 `install-portable-python-3-13-for-wsl2.sh` 를 먼저 실행한다.
 이 스크립트는 runtime 을 저장소 밖에 설치하며 전역 Python 환경을 변경하지 않는다.
 
 설치 후에는 로컬 실행 스크립트와 같은 방식으로 실행 파일을 확인하고 `PATH`를 설정한다.
@@ -44,7 +44,7 @@ command -v "${PYTHON}"
 진행하지 않는다. pip는 별도 `pip` 명령이 아니라 확인한 Python의
 `"${PYTHON}" -m pip`로만 실행한다.
 
-PUBLIC-LOCAL 이 아닌 환경에서는 해당 환경의 Python 준비 절차를 사용하되, 이후 단계에서
+PUBLIC-WSL2 가 아닌 환경에서는 해당 환경의 Python 준비 절차를 사용하되, 이후 단계에서
 사용할 `PYTHON`을 지정하고 같은 검증을 수행한다.
 
 ## 3. 다운로드 준비

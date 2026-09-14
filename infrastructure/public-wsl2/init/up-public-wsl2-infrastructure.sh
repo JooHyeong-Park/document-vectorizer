@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 
 SCRIPT_DIRECTORY="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-COMPOSE_FILE_NAME="public-local-podman-compose.yml"
+COMPOSE_FILE_NAME="public-wsl2-podman-compose.yml"
 COMPOSE_PROJECT_NAME="document-vectorizer"
 COMPOSE_FILE_PATH="${SCRIPT_DIRECTORY}/${COMPOSE_FILE_NAME}"
 

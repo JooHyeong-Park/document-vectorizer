@@ -4,18 +4,17 @@ set -Eeuo pipefail
 
 SCRIPT_DIRECTORY="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd -- "${SCRIPT_DIRECTORY}/../.." && pwd)"
-ENV_FILE="${SCRIPT_DIRECTORY}/_public-local-variables-by-image"
-IMAGE_URL="${IMAGE_URL:-localhost/document-vectorizer-web-app:clean}"
-CONTAINER_NAME="${CONTAINER_NAME:-document-vectorizer-web-app}"
+ENV_FILE="${SCRIPT_DIRECTORY}/_public-wsl2-variables-by-image"
+IMAGE_URL="${IMAGE_URL:-localhost/document-vectorizer-function-app:clean}"
+CONTAINER_NAME="${CONTAINER_NAME:-document-vectorizer-function-app}"
 PODMAN_NETWORK="${PODMAN_NETWORK:-vectorizer-network}"
-HOST_PORT="${HOST_PORT:-8081}"
-WEB_APP_PORT="${WEB_APP_PORT:-8080}"
+HOST_PORT="${HOST_PORT:-8080}"
+FUNCTION_PORT="${FUNCTION_PORT:-8080}"
 
 if [[ ! -f "${ENV_FILE}" ]]; then
   printf '[ERROR] environment file %s is not configured\n' "'${ENV_FILE}'" >&2
   exit 1
 fi
-
 set -a
 # shellcheck disable=SC1090
 source "${ENV_FILE}"
@@ -28,7 +27,7 @@ cd "${PROJECT_ROOT}"
 printf '[INFO] Build image %s\n' "${IMAGE_URL}"
 podman build \
   --no-cache \
-  --file "${PROJECT_ROOT}/Dockerfile.web-app" \
+  --file "${PROJECT_ROOT}/Dockerfile.function-app" \
   --tag "${IMAGE_URL}" \
   "${PROJECT_ROOT}"
 
@@ -40,11 +39,11 @@ printf '[INFO] Run container %s on port %s\n' "${CONTAINER_NAME}" "${HOST_PORT}"
 podman run \
   --name "${CONTAINER_NAME}" \
   --network "${PODMAN_NETWORK}" \
-  --publish "${HOST_PORT}:${WEB_APP_PORT}" \
+  --publish "${HOST_PORT}:${FUNCTION_PORT}" \
   --env-file "${ENV_FILE}" \
-  --env "WEBSITES_PORT=${WEB_APP_PORT}" \
   --env "EMBEDDING_PROFILES__DEFAULT__OPENROUTER_API_KEY=${OPENROUTER_API_KEY}" \
   "${IMAGE_URL}"
+
 status=$?
 exit "${status}"
 
