@@ -1,0 +1,5 @@
+-r common_python_runtime.in
+
+fastapi
+
+uvicorn[standard]

@@ -1,0 +1,21 @@
+{
+  "version": "2.0",
+  "extensions": {
+    "http": {
+      "routePrefix": "api"
+    }
+  },
+  "logging": {
+    "logLevel": {
+      "default": "Information"
+    },
+    "console": {
+      "isEnabled": true,
+      "DisableColors": true
+    }
+  },
+  "extensionBundle": {
+    "id": "Microsoft.Azure.Functions.ExtensionBundle",
+    "version": "[4.*, 5.0.0)"
+  }
+}

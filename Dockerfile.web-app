@@ -1,0 +1,60 @@
+FROM docker.io/python:3.13-slim AS builder
+
+ARG PIP_INDEX_URL="https://pypi.org/simple"
+ARG DEPLOY_ROOT_PATH="/home/app"
+ARG SOURCE_PATH="${DEPLOY_ROOT_PATH}/source"
+ARG PYTHON_SITE_PACKAGES="${DEPLOY_ROOT_PATH}/.python_packages/lib/python3.13/site-packages"
+
+# Offline Linux CPython 3.13 wheelhouse
+# Runtime dependencies are installed exclusively from this directory.
+ARG OFFLINE_PACKAGE_PATH="requirements/wheels/runtimes/linux-x86_64-cp313"
+
+RUN groupadd --gid 10000 app \
+    && useradd --uid 10000 --gid 10000 --create-home --shell /bin/bash app \
+    && mkdir -p "${SOURCE_PATH}" "${PYTHON_SITE_PACKAGES}" \
+    && chown -R app:app "${DEPLOY_ROOT_PATH}"
+
+USER app
+WORKDIR "${DEPLOY_ROOT_PATH}"
+
+ENV PIP_INDEX_URL="${PIP_INDEX_URL}" \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_NO_COMPILE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+# Copy Web App source, including the runtime requirements and wheelhouse.
+COPY --chown=app:app . "${SOURCE_PATH}"/
+
+RUN echo "[INFO] Check python3 version" \
+  && python --version \
+  && echo "[INFO] Check pip version" \
+  && pip --version \
+  && echo "[INFO] Install Python packages offline from ${SOURCE_PATH}/${OFFLINE_PACKAGE_PATH}" \
+  && pip install --target "${PYTHON_SITE_PACKAGES}" \
+    --requirement "${SOURCE_PATH}/requirements/web_app_python_runtime.in" \
+    --find-links="${SOURCE_PATH}/${OFFLINE_PACKAGE_PATH}" \
+    --no-index --no-input --no-cache-dir --no-compile \
+    --disable-pip-version-check --progress-bar off \
+  && echo "[INFO] Remove offline packages and unnecessary files such as __pycache__" \
+  && rm -rf "${SOURCE_PATH}/${OFFLINE_PACKAGE_PATH}" \
+  && find "${SOURCE_PATH}" -type d -name '__pycache__' -prune -exec rm -rf {} +
+
+USER root
+RUN echo "[INFO] Remove pip" \
+  && python -m pip uninstall -y pip
+
+FROM builder AS runtime
+
+ARG DEPLOY_ROOT_PATH="/home/app"
+ARG SOURCE_PATH="${DEPLOY_ROOT_PATH}/source"
+ARG PYTHON_SITE_PACKAGES="${DEPLOY_ROOT_PATH}/.python_packages/lib/python3.13/site-packages"
+
+ENV PYTHONPATH="${SOURCE_PATH}:${SOURCE_PATH}/src:${PYTHON_SITE_PACKAGES}" \
+    PYTHONDONTWRITEBYTECODE=1
+
+USER app
+WORKDIR "${SOURCE_PATH}"
+EXPOSE 8080
+
+CMD ["python", "-m", "adapters.azure_web_app.fastapi_app"]

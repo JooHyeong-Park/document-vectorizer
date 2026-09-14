@@ -1,0 +1,22 @@
+### --- CLI / logging ---
+rich
+
+### --- Linting ---
+# ruff
+
+### --- Embedding visualization---
+numpy
+
+### pandas
+pandas
+
+### scikit-learn
+scikit-learn
+
+### plotly
+plotly
+
+### --- Test ---
+pytest
+
+pytest-asyncio

@@ -1,0 +1,6 @@
+# Azure Functions requires this dependency manifest at the source root.
+# Do not rename or move this file.
+
+-r requirements/common_python_runtime.in
+
+azure-functions

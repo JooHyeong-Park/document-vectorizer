@@ -1,0 +1,45 @@
+### --- Core ---
+pydantic
+
+pydantic-settings
+
+python-dotenv
+
+### --- Azure ---
+azure-storage-blob
+
+azure-identity
+
+# AzureOpenAI / AsyncAzureOpenAI clients (embedding + chat)
+openai
+
+### --- Tokenization / chunking ---
+tiktoken
+
+### --- Document parsing: pdf / word / excel (xlsx, xls) / csv, txt / pptx only ---
+# .pdf
+pypdf
+
+# .docx
+python-docx
+
+# .xlsx
+openpyxl
+
+# legacy .xls
+xlrd
+
+# .pptx
+python-pptx
+
+# encoding detection for .csv/.txt
+charset-normalizer
+
+### --- PostgreSQL / pgvector ---
+psycopg[binary,pool]
+
+### pgvector
+pgvector
+
+### --- Resilience / concurrency ---
+tenacity

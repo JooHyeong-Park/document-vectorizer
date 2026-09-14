@@ -1,0 +1,35 @@
+# Git metadata and repository configuration
+.git
+.gitignore
+.gitattributes
+
+# Local configuration and secrets
+local.settings.json
+.env
+.env.*
+
+# Development-only source and tooling
+docs
+infrastructure
+tests
+pytest.ini
+pyproject.toml
+.pytest_cache
+.ruff_cache
+.venv
+venv
+__pycache__
+*.py[cod]
+
+# Non-Function Docker/build files
+Dockerfile*
+README*
+AGENTS.md
+
+# Development dependencies and development wheelhouse
+requirements/development_python_tools.in
+requirements/wheels/development
+requirements/wheels/runtimes/windows-*
+requirements/wheels/runtimes/macos-*
+requirements/wheels/runtimes/darwin-*
+requirements/wheels/runtimes/osx-*

@@ -1,0 +1,123 @@
+services:
+  postgresql:
+    image: docker.io/pgvector/pgvector:0.8.6-pg16-bookworm
+    container_name: document-vectorizer-postgresql
+    ports:
+    - target: 5432
+      published: ${POSTGRES_PORT:-10001}
+      protocol: tcp
+    volumes:
+    - type: volume
+      source: postgresql_data
+      target: /var/lib/postgresql/data
+    - type: bind
+      source: ./postgresql
+      target: /docker-entrypoint-initdb.d
+      read_only: true
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-vectorizer}
+      POSTGRES_USER: ${POSTGRES_USER:-pgadmin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pgadmin1!}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+    networks:
+    - vectorizer-network
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.37.0
+    container_name: document-vectorizer-azurite
+    ports:
+    - target: 10000
+      published: ${AZURITE_BLOB_PORT:-10011}
+      protocol: tcp
+    - target: 10001
+      published: ${AZURITE_QUEUE_PORT:-10013}
+      protocol: tcp
+    - target: 10002
+      published: ${AZURITE_TABLE_PORT:-10012}
+      protocol: tcp
+    volumes:
+    - type: volume
+      source: azurite_data
+      target: /data
+    command: >-
+      azurite
+      --location /data
+      --blobHost 0.0.0.0
+      --queueHost 0.0.0.0
+      --tableHost 0.0.0.0
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - >-
+        node -e "require('net').createConnection(10000, '127.0.0.1').on('connect',
+        function () { process.exit(0); }).on('error', function () { process.exit(1);
+        })"
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+    networks:
+    - vectorizer-network
+
+  cloudbeaver:
+    image: docker.io/dbeaver/cloudbeaver:26.2.0
+    container_name: document-vectorizer-cloudbeaver
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    ports:
+    - target: 8978
+      published: ${CLOUDBEAVER_PORT:-10000}
+      protocol: tcp
+    volumes:
+    - type: volume
+      source: cloudbeaver_workspace
+      target: /opt/cloudbeaver/workspace
+    - type: bind
+      source: ./cloudbeaver/initial-data-sources.conf
+      target: /opt/cloudbeaver/conf/initial-data-sources.conf
+      read_only: true
+    environment:
+      CB_SERVER_NAME: ${CLOUDBEAVER_SERVER_NAME:-document-vectorizer}
+      CB_ADMIN_NAME: ${CLOUDBEAVER_ADMIN_NAME:-cbadmin}
+      CB_ADMIN_PASSWORD: ${CLOUDBEAVER_ADMIN_PASSWORD:-cbadmin1!}
+      CLOUDBEAVER_APP_ANONYMOUS_ACCESS_ENABLED: "false"
+      CLOUDBEAVER_POLICY_REQUIRE_MIXED_CASE: "false"
+    restart: unless-stopped
+    networks:
+    - vectorizer-network
+
+  storage-explorer:
+    image: docker.io/sebagomez/azurestorageexplorer:latest
+    container_name: document-vectorizer-storage-explorer
+    depends_on:
+      azurite:
+        condition: service_healthy
+    ports:
+    - target: 8080
+      published: ${STORAGE_EXPLORER_PORT:-10010}
+      protocol: tcp
+    environment:
+      AZURE_STORAGE_CONNECTIONSTRING: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;SharedAccessSignature=se=2036-01-01T00%3A00%3A00Z&sp=rwdlacup&sv=2026-02-06&ss=btq&srt=sco&sig=zSsuAGKydyuC%2BKIg8uooMqcjwzSut6TE%2B3dWIIYVtW4%3D;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;"
+      AZURITE: "true"
+    restart: unless-stopped
+    networks:
+    - vectorizer-network
+
+networks:
+  vectorizer-network:
+    name: vectorizer-network
+    driver: bridge
+
+volumes:
+  postgresql_data:
+    driver: local
+  azurite_data:
+    driver: local
+  cloudbeaver_workspace:
+    driver: local

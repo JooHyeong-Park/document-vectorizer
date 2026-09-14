@@ -1,0 +1,45 @@
+# Public local runtime configuration.
+# The OpenRouter API key is supplied separately at runtime.
+
+### Function App only
+
+# [Reference]
+# - Connect to Azurite with SDKs and tools
+#   https://learn.microsoft.com/en-us/azure/storage/common/storage-connect-azurite?tabs=blob-storage
+# ```
+# Use a well-known storage account and key
+# Azurite accepts the same well-known account and key used by the legacy Azure Storage Emulator.
+# - Account name: devstoreaccount1
+# - Account key: Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
+# ```
+FUNCTIONS_WORKER_RUNTIME=python
+AzureWebJobsSecretStorageType=files
+AzureWebJobsStorage=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://document-vectorizer-azurite:10000/devstoreaccount1;QueueEndpoint=http://document-vectorizer-azurite:10001/devstoreaccount1;TableEndpoint=http://document-vectorizer-azurite:10002/devstoreaccount1
+
+### Shared application runtime
+
+# Required for PUBLIC-LOCAL and PRIVATE-LOCAL; not required for ENV-AZURE.
+VECTORIZE_SETTINGS_PROFILE=public
+
+BLOB_STORAGES__DEFAULT__ENDPOINT=http://document-vectorizer-azurite:10000/devstoreaccount1
+BLOB_STORAGES__DEFAULT__AUTHENTICATION_MODE=account_key
+BLOB_STORAGES__DEFAULT__ACCOUNT_KEY=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
+
+POSTGRESQL_HOST=document-vectorizer-postgresql
+POSTGRESQL_PORT=5432
+POSTGRESQL_DATABASE_NAME=vectorizer
+POSTGRESQL_USERNAME=vectorizer
+POSTGRESQL_PASSWORD=vectorizer1!
+POSTGRESQL_SSL_MODE=disable
+
+EMBEDDING_PROFILES__DEFAULT__PROVIDER=openrouter
+EMBEDDING_PROFILES__DEFAULT__ENDPOINT=https://openrouter.ai/api/v1
+EMBEDDING_PROFILES__DEFAULT__AUTHENTICATION_MODE=api_key
+EMBEDDING_PROFILES__DEFAULT__MODEL=openai/text-embedding-3-small
+EMBEDDING_PROFILES__DEFAULT__DIMENSIONS=1536
+EMBEDDING_PROFILES__DEFAULT__BATCH_SIZE=32
+EMBEDDING_PROFILES__DEFAULT__DOCUMENT_CHUNK_SIZE=1000
+EMBEDDING_PROFILES__DEFAULT__DOCUMENT_CHUNK_OVERLAP=100
+
+MAX_DOCUMENT_SIZE_MB=50
+PROCESSING_TIMEOUT_SECONDS=300

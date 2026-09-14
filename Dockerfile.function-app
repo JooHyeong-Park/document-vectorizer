@@ -1,0 +1,71 @@
+FROM mcr.microsoft.com/azure-functions/python:4-python3.13 AS builder
+
+ARG PIP_INDEX_URL="https://pypi.org/simple"
+ARG FUNCTION_APP_ROOT="/home/site/wwwroot"
+ARG PYTHON_SITE_PACKAGES="${FUNCTION_APP_ROOT}/.python_packages/lib/site-packages"
+
+# Offline Linux CPython 3.13 wheelhouse
+# Runtime dependencies are installed exclusively from this directory.
+ARG OFFLINE_PACKAGE_PATH="requirements/wheels/runtimes/linux-x86_64-cp313"
+
+# The official Azure Functions Python image already includes a non-root 'app' user.
+# Root is required here to change FUNCTION_APP_ROOT ownership to app.
+USER root
+RUN mkdir -p "${FUNCTION_APP_ROOT}" \
+    && chown -R app:app /home/site
+
+USER app
+
+ENV PIP_INDEX_URL="${PIP_INDEX_URL}" \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_NO_COMPILE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+# Copy Function App source, including requirements.txt.
+COPY --chown=app:app . "${FUNCTION_APP_ROOT}"/
+
+RUN echo "[INFO] Check python version" \
+  && python --version \
+  && echo "[INFO] Check pip version" \
+  && pip --version \
+  && echo "[INFO] Create ${PYTHON_SITE_PACKAGES}" \
+  && mkdir -p "${PYTHON_SITE_PACKAGES}" \
+  && echo "[INFO] Install Python packages offline from '${FUNCTION_APP_ROOT}/${OFFLINE_PACKAGE_PATH}'" \
+  && pip install --target "${PYTHON_SITE_PACKAGES}" --requirement "${FUNCTION_APP_ROOT}/requirements.txt" \
+    --find-links="${FUNCTION_APP_ROOT}/${OFFLINE_PACKAGE_PATH}" \
+    --no-index --no-input --no-cache-dir --no-compile \
+    --disable-pip-version-check --progress-bar off \
+  && echo "[INFO] List installed packages in ${PYTHON_SITE_PACKAGES}" \
+  && ls -al "${PYTHON_SITE_PACKAGES}" \
+  && echo "[INFO] Remove offline packages and unnecessary files such as __pycache__" \
+  && rm -rf "${FUNCTION_APP_ROOT}/${OFFLINE_PACKAGE_PATH}" \
+  && find "${FUNCTION_APP_ROOT}" -type d -name '__pycache__' -prune -exec rm -rf {} +
+
+# The online wheel download flow is intentionally disabled. If needed for
+# preparing the source wheel directory, use the following outside this image:
+# pip download --requirement requirements.txt \
+#   --index-url "${PIP_INDEX_URL}" \
+#   --dest "${OFFLINE_PACKAGE_PATH}" --only-binary=:all:
+
+USER root
+RUN echo "[INFO] Remove pip" \
+  && python -m pip uninstall -y pip
+
+FROM builder AS runner
+
+ARG FUNCTION_APP_ROOT="/home/site/wwwroot"
+ARG PYTHON_SITE_PACKAGES="${FUNCTION_APP_ROOT}/.python_packages/lib/site-packages"
+
+## Port 8080 -> non-root runner; avoid privileged port 80.
+ENV ASPNETCORE_URLS="http://+:8080" \
+    ASPNETCORE_HTTP_PORTS=8080
+
+ENV PYTHONPATH="${FUNCTION_APP_ROOT}:${FUNCTION_APP_ROOT}/src:${PYTHON_SITE_PACKAGES}" \
+    PYTHONDONTWRITEBYTECODE=1
+
+USER app
+WORKDIR "${FUNCTION_APP_ROOT}"
+EXPOSE 8080
+
+CMD ["/azure-functions-host/Microsoft.Azure.WebJobs.Script.WebHost"]
