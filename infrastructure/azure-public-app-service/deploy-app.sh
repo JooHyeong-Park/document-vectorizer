@@ -19,8 +19,8 @@ APP_IMAGE_URL='acr00001kcdv0101.azurecr.io/document-vectorizer-function-app:2026
 # APP_NAME='wbalx00001kcdv0101'
 # APP_IMAGE_URL='acr00001kcdv0101.azurecr.io/document-vectorizer-web-app:20260915-01'
 
-DEPLOYMENT_TIMEOUT_SECONDS=600
 POLL_INTERVAL_SECONDS=10
+ARM_REQUEST_TIMEOUT_SECONDS=120
 ARM_API_VERSION='2026-07-15'
 
 source "${script_directory}/_common.sh"
@@ -29,27 +29,41 @@ arm_request() {
   local method=$1
   local url=$2
   local body=${3:-}
+  local -a curl_arguments=(
+    --silent
+    --show-error
+    --connect-timeout "${AZURE_CONNECT_TIMEOUT_SECONDS}"
+    --max-time "${ARM_REQUEST_TIMEOUT_SECONDS}"
+    --request "${method}"
+    --header "Authorization: Bearer ${AZURE_ACCESS_TOKEN}"
+    --write-out $'\n%{http_code}'
+  )
 
   if [[ -n "${body}" ]]; then
-    curl \
-      --fail \
-      --silent \
-      --show-error \
-      --request "${method}" \
-      --header "Authorization: Bearer ${AZURE_ACCESS_TOKEN}" \
-      --header 'Content-Type: application/json' \
-      --data-raw "${body}" \
-      "${url}"
+    curl_arguments+=(
+      --header 'Content-Type: application/json'
+      --data-raw "${body}"
+    )
   else
-    curl \
-      --fail \
-      --silent \
-      --show-error \
-      --request "${method}" \
-      --header "Authorization: Bearer ${AZURE_ACCESS_TOKEN}" \
-      --header 'Content-Length: 0' \
-      "${url}"
+    curl_arguments+=(--header 'Content-Length: 0')
   fi
+
+  local response
+  if ! response="$(curl "${curl_arguments[@]}" "${url}")"; then
+    return 1
+  fi
+
+  local http_status="${response##*$'\n'}"
+  local response_body="${response%$'\n'*}"
+  unset response
+
+  if [[ ! "${http_status}" =~ ^2[0-9][0-9]$ ]]; then
+    printf '[ERROR] ARM %s request failed (HTTP %s)\n%s\n' \
+      "${method}" "${http_status}" "${response_body}" >&2
+    return 1
+  fi
+
+  printf '%s' "${response_body}"
 }
 
 update_app_service_container_configuration() {
@@ -69,7 +83,9 @@ restart_app_service() {
   local app_url="https://management.azure.com/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Web/sites/${app_name}"
 
   printf '[INFO] Restarting %s: %s\n' "${app_type}" "${app_name}"
-  arm_request POST "${app_url}/restart?api-version=${ARM_API_VERSION}" >/dev/null
+  arm_request \
+    POST \
+    "${app_url}/restart?api-version=${ARM_API_VERSION}&synchronous=true" >/dev/null
 }
 
 verify_app_service_container_deployment() {
@@ -77,9 +93,8 @@ verify_app_service_container_deployment() {
   local app_name=$2
   local image_url=$3
   local app_url="https://management.azure.com/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Web/sites/${app_name}"
-  local started_at="${SECONDS}"
   local attempt=0
-  while (( SECONDS - started_at < DEPLOYMENT_TIMEOUT_SECONDS )); do
+  while true; do
     ((attempt += 1))
     local site_response
     local state
@@ -100,10 +115,6 @@ verify_app_service_container_deployment() {
 
     sleep "${POLL_INTERVAL_SECONDS}"
   done
-
-  printf '[ERROR] %s deployment verification timed out after %ss: %s\n' \
-    "${app_type}" "${DEPLOYMENT_TIMEOUT_SECONDS}" "${app_name}" >&2
-  return 1
 }
 
 

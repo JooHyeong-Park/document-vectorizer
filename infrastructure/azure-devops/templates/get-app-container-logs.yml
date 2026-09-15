@@ -1,0 +1,72 @@
+parameters:
+- name: timeoutInMinutes
+  type: number
+  default: 5
+
+steps:
+- task: Bash@3
+  displayName: Get App Service container logs
+  condition: always()
+  timeoutInMinutes: ${{ parameters.timeoutInMinutes }}
+  inputs:
+    targetType: inline
+    script: |
+      LOG_REQUEST_TIMEOUT_SECONDS=120
+
+      source ./templates/_common.sh
+      login_by_service_principal "${AZURE_AUTHENTICATION_METHOD}"
+
+      container_logs_url="https://management.azure.com/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Web/sites/${APP_NAME}/containerlogs?api-version=${ARM_API_VERSION}"
+      temporary_directory="$(mktemp -d)"
+      logs_file="${temporary_directory}/container-logs.txt"
+
+      if ! http_status="$(curl \
+        --silent \
+        --show-error \
+        --connect-timeout "${AZURE_CONNECT_TIMEOUT_SECONDS}" \
+        --max-time "${LOG_REQUEST_TIMEOUT_SECONDS}" \
+        --request POST \
+        --header "Authorization: Bearer ${AZURE_ACCESS_TOKEN}" \
+        --header 'Content-Length: 0' \
+        --header 'Accept: application/octet-stream' \
+        --output "${logs_file}" \
+        --write-out '%{http_code}' \
+        "${container_logs_url}")"; then
+        rm -rf -- "${temporary_directory}"
+        exit 1
+      fi
+
+      case "${http_status}" in
+        200)
+          printf '[INFO] %s container logs: %s\n' "${APP_TYPE}" "${APP_NAME}"
+          if [[ -s "${logs_file}" ]]; then
+            cat "${logs_file}"
+          else
+            printf '[INFO] Container Logs API returned no log content\n'
+          fi
+          ;;
+        204)
+          printf '[INFO] Container Logs API returned no content: %s %s\n' "${APP_TYPE}" "${APP_NAME}"
+          ;;
+        *)
+          error_body="$(<"${logs_file}")"
+          printf '[ERROR] Get %s container logs failed (HTTP %s)\n%s\n' \
+            "${APP_TYPE}" "${http_status}" "${error_body}" >&2
+          rm -rf -- "${temporary_directory}"
+          exit 1
+          ;;
+      esac
+
+      rm -rf -- "${temporary_directory}"
+    workingDirectory: '$(Build.SourcesDirectory)'
+    failOnStderr: false
+  env:
+    AZURE_TENANT_ID: $(AZURE_TENANT_ID)
+    AZURE_CLIENT_ID: $(AZURE_CLIENT_ID)
+    AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
+    AZURE_AUTHENTICATION_METHOD: $(AZURE_AUTHENTICATION_METHOD)
+    AZURE_SCOPE: $(AZURE_SCOPE)
+    AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
+    RESOURCE_GROUP: $(RESOURCE_GROUP)
+    APP_TYPE: $(APP_TYPE)
+    APP_NAME: $(APP_NAME)

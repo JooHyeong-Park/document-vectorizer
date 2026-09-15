@@ -11,10 +11,13 @@ AZURE_AUTHENTICATION_METHOD='client_secret'
 AZURE_SCOPE='https://management.azure.com/.default'
 AZURE_SUBSCRIPTION_ID='d423337a-8a9a-43fd-891c-4f57161bc69d'
 RESOURCE_GROUP='RG_00001_Public-App-Service_DV01'
+
 APP_TYPE='Function App'
 APP_NAME='fpy00001kcdv0101'
 # APP_TYPE='Web App'
 # APP_NAME='wbalx00001kcdv0101'
+
+LOG_REQUEST_TIMEOUT_SECONDS=120
 ARM_API_VERSION='2026-07-15'
 
 source "${script_directory}/_common.sh"
@@ -28,9 +31,10 @@ get_app_container_logs() {
   local http_status
 
   if ! http_status="$(curl \
-    --fail \
     --silent \
     --show-error \
+    --connect-timeout "${AZURE_CONNECT_TIMEOUT_SECONDS}" \
+    --max-time "${LOG_REQUEST_TIMEOUT_SECONDS}" \
     --request POST \
     --header "Authorization: Bearer ${AZURE_ACCESS_TOKEN}" \
     --header 'Content-Length: 0' \
@@ -55,7 +59,10 @@ get_app_container_logs() {
       printf '[INFO] Container Logs API returned no content: %s %s\n' "${APP_TYPE}" "${APP_NAME}"
       ;;
     *)
-      printf '[ERROR] Container Logs API returned HTTP %s\n' "${http_status}" >&2
+      local error_body
+      error_body="$(<"${logs_file}")"
+      printf '[ERROR] Get %s container logs failed (HTTP %s)\n%s\n' \
+        "${APP_TYPE}" "${http_status}" "${error_body}" >&2
       rm -rf -- "${temporary_directory}"
       return 1
       ;;

@@ -1,0 +1,31 @@
+parameters:
+- name: timeoutInMinutes
+  type: number
+  default: 30
+
+steps:
+- task: Bash@3
+  displayName: Deploy App Service container
+  timeoutInMinutes: ${{ parameters.timeoutInMinutes }}
+  inputs:
+    targetType: inline
+    script: |
+      source ./templates/_common.sh
+
+      login_by_service_principal "${AZURE_AUTHENTICATION_METHOD}"
+      update_app_service_container_configuration "${APP_TYPE}" "${APP_NAME}" "${APP_IMAGE_URL}"
+      restart_app_service "${APP_TYPE}" "${APP_NAME}"
+      verify_app_service_container_deployment "${APP_TYPE}" "${APP_NAME}" "${APP_IMAGE_URL}"
+    workingDirectory: '$(Build.SourcesDirectory)'
+    failOnStderr: false
+  env:
+    AZURE_TENANT_ID: $(AZURE_TENANT_ID)
+    AZURE_CLIENT_ID: $(AZURE_CLIENT_ID)
+    AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
+    AZURE_AUTHENTICATION_METHOD: $(AZURE_AUTHENTICATION_METHOD)
+    AZURE_SCOPE: $(AZURE_SCOPE)
+    AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
+    RESOURCE_GROUP: $(RESOURCE_GROUP)
+    APP_TYPE: $(APP_TYPE)
+    APP_NAME: $(APP_NAME)
+    APP_IMAGE_URL: $(APP_IMAGE_URL)
