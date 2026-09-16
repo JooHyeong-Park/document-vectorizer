@@ -47,7 +47,7 @@ arm_request() {
   unset response
 
   if [[ ! "${http_status}" =~ ^2[0-9][0-9]$ ]]; then
-    printf '[ERROR] ARM %s request failed (HTTP %s)\n%s\n' \
+    printf '[ERROR] ARM '%s' request failed :: http status '%s'\n%s\n' \
       "${method}" "${http_status}" "${response_body}" >&2
     return 1
   fi
@@ -63,9 +63,10 @@ update_app_service_container_configuration() {
   local image_url=$3
   local app_url="https://management.azure.com/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Web/sites/${app_name}"
 
-  printf '[INFO] Updating %s container configuration: %s\n' "${app_type}" "${app_name}"
+  printf '[INFO] Updating %s '%s' container configuration -> linuxFxVersion=%s\n' \
+    "${app_type}" "${app_name}" "DOCKER|${image_url}"
   arm_request PATCH "${app_url}/config/web?api-version=${ARM_API_VERSION}" \
-    "{\"properties\":{\"linuxFxVersion\":\"DOCKER|${image_url}\",\"acrUseManagedIdentityCreds\":true}}" >/dev/null
+    "{\"properties\":{\"linuxFxVersion\":\"DOCKER|${image_url}\"}}" >/dev/null
 }
 
 # Restart the App Service synchronously.
@@ -74,7 +75,7 @@ restart_app_service() {
   local app_name=$2
   local app_url="https://management.azure.com/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Web/sites/${app_name}"
 
-  printf '[INFO] Restarting %s: %s\n' "${app_type}" "${app_name}"
+  printf '[INFO] Restarting %s '%s' (synchronous=true)\n' "${app_type}" "${app_name}"
   arm_request \
     POST \
     "${app_url}/restart?api-version=${ARM_API_VERSION}&synchronous=true" >/dev/null
@@ -90,22 +91,24 @@ verify_app_service_container_deployment() {
   while true; do
     ((attempt += 1))
     local site_response
-    local state
-    local configured_image
+    local actual_state
+    local actual_linuxFxVersion
+    local expected_linuxFxVersion="DOCKER|${image_url}"
     site_response="$(arm_request GET "${app_url}?api-version=${ARM_API_VERSION}")"
-    state="$(extract_json_string "${site_response}" 'state')"
-    configured_image="$(extract_json_string "${site_response}" 'linuxFxVersion')"
+    actual_state="$(extract_json_string "${site_response}" 'state')"
+    actual_linuxFxVersion="$(extract_json_string "${site_response}" 'linuxFxVersion')"
     unset site_response
 
-    printf '[INFO] %s deployment check %s: state=%s image=%s\n' \
-      "${app_type}" "${attempt}" "${state}" "${configured_image}"
+    printf "[INFO] (attempt=%s) Retrieved %s '%s' configuration\n  - actual_state='%s'\n  - actual_linuxFxVersion='%s'\n  - expected_linuxFxVersion='%s'\n" \
+      "${attempt}" "${app_type}" "${app_name}" "${actual_state}" "${actual_linuxFxVersion}" "${expected_linuxFxVersion}"
 
-    if [[ "${state}" == 'Running' && "${configured_image}" == "DOCKER|${image_url}" ]]; then
-      printf '[SUCCESS] %s deployment verified through Azure Resource Manager: app=%s state=%s configured_image=%s\n' \
-        "${app_type}" "${app_name}" "${state}" "${configured_image}"
+    if [[ "${actual_state}" == 'Running' && "${actual_linuxFxVersion}" == "${expected_linuxFxVersion}" ]]; then
+      printf '[SUCCESS] %s '%s' deployment verified\n  - actual_state=%s\n  - actual_linuxFxVersion=%s\n' \
+        "${app_type}" "${app_name}" "${actual_state}" "${actual_linuxFxVersion}"
       return 0
     fi
 
+    printf '[INFO] Deployment is not ready; retrying in %ss\n' "${POLL_INTERVAL_SECONDS}"
     sleep "${POLL_INTERVAL_SECONDS}"
   done
 }

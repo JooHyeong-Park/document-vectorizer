@@ -45,9 +45,14 @@ steps:
       source ./templates/_auth.sh
       source ./templates/_deploy-app-service.sh
 
+      printf '[INFO] Deployment target: resource_group=%s type=%s app=%s\n' \
+        "${RESOURCE_GROUP}" "${APP_TYPE}" "${APP_NAME}"
+
       login_by_service_principal "${AZURE_AUTHENTICATION_METHOD}"
 
       APP_IMAGE_URL="${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}"
+      printf '[INFO] Container image selected: %s\n' "${APP_IMAGE_URL}"
+      printf '[INFO] Starting App Service container deployment\n'
       update_app_service_container_configuration "${APP_TYPE}" "${APP_NAME}" "${APP_IMAGE_URL}"
       restart_app_service "${APP_TYPE}" "${APP_NAME}"
       verify_app_service_container_deployment "${APP_TYPE}" "${APP_NAME}" "${APP_IMAGE_URL}"
