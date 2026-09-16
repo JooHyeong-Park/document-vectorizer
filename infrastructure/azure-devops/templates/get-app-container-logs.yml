@@ -1,24 +1,42 @@
 parameters:
-- name: timeoutInMinutes
+# TEMPORARY AZURE ACCESS TOKEN :: START
+# Remove this parameter after Service Principal authentication is enabled.
+- name: azure_access_token
+  type: string
+# TEMPORARY AZURE ACCESS TOKEN :: END
+- name: timeout_in_minutes
   type: number
   default: 5
+- name: azure_authentication_method
+  type: string
+  default: client_secret
+- name: subscription_id
+  type: string
+- name: resource_group
+  type: string
+- name: app_type
+  type: string
+- name: app_name
+  type: string
 
 steps:
 - task: Bash@3
   displayName: Get App Service container logs
   condition: always()
-  timeoutInMinutes: ${{ parameters.timeoutInMinutes }}
+  timeoutInMinutes: ${{ parameters.timeout_in_minutes }}
   inputs:
     targetType: inline
+    workingDirectory: '$(Build.SourcesDirectory)'
     script: |
       LOG_REQUEST_TIMEOUT_SECONDS=120
 
-      source ./templates/_common.sh
+      source ./templates/_auth.sh
       login_by_service_principal "${AZURE_AUTHENTICATION_METHOD}"
 
+      ARM_API_VERSION='2026-07-15'
       container_logs_url="https://management.azure.com/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Web/sites/${APP_NAME}/containerlogs?api-version=${ARM_API_VERSION}"
       temporary_directory="$(mktemp -d)"
-      logs_file="${temporary_directory}/container-logs.txt"
+      logs_file="${temporary_directory}/document-vectorizer-${APP_NAME}-container-logs.txt"
 
       if ! http_status="$(curl \
         --silent \
@@ -58,15 +76,13 @@ steps:
       esac
 
       rm -rf -- "${temporary_directory}"
-    workingDirectory: '$(Build.SourcesDirectory)'
-    failOnStderr: false
   env:
-    AZURE_TENANT_ID: $(AZURE_TENANT_ID)
-    AZURE_CLIENT_ID: $(AZURE_CLIENT_ID)
-    AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
-    AZURE_AUTHENTICATION_METHOD: $(AZURE_AUTHENTICATION_METHOD)
-    AZURE_SCOPE: $(AZURE_SCOPE)
-    AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
-    RESOURCE_GROUP: $(RESOURCE_GROUP)
-    APP_TYPE: $(APP_TYPE)
-    APP_NAME: $(APP_NAME)
+    # TEMPORARY AZURE ACCESS TOKEN :: START
+    # Remove this mapping after Service Principal authentication is enabled.
+    AZURE_ACCESS_TOKEN: ${{ parameters.azure_access_token }}
+    # TEMPORARY AZURE ACCESS TOKEN :: END
+    AZURE_AUTHENTICATION_METHOD: ${{ parameters.azure_authentication_method }}
+    AZURE_SUBSCRIPTION_ID: ${{ parameters.subscription_id }}
+    RESOURCE_GROUP: ${{ parameters.resource_group }}
+    APP_TYPE: ${{ parameters.app_type }}
+    APP_NAME: ${{ parameters.app_name }}

@@ -1,0 +1,57 @@
+parameters:
+# TEMPORARY AZURE ACCESS TOKEN :: START
+# Remove this parameter after Service Principal authentication is enabled.
+- name: azure_access_token
+  type: string
+# TEMPORARY AZURE ACCESS TOKEN :: END
+- name: timeout_in_minutes
+  type: number
+  default: 30
+- name: azure_authentication_method
+  type: string
+  default: client_secret
+- name: subscription_id
+  type: string
+- name: resource_group
+  type: string
+- name: app_type
+  type: string
+- name: app_name
+  type: string
+- name: acr_name
+  type: string
+- name: image_name
+  type: string
+- name: image_tag
+  type: string
+
+steps:
+- task: Bash@3
+  displayName: Deploy App Service container
+  timeoutInMinutes: ${{ parameters.timeout_in_minutes }}
+  inputs:
+    targetType: inline
+    workingDirectory: '$(Build.SourcesDirectory)'
+    script: |
+      source ./templates/_auth.sh
+      source ./templates/_deploy-app-service.sh
+
+      login_by_service_principal "${AZURE_AUTHENTICATION_METHOD}"
+
+      APP_IMAGE_URL="${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}"
+      update_app_service_container_configuration "${APP_TYPE}" "${APP_NAME}" "${APP_IMAGE_URL}"
+      restart_app_service "${APP_TYPE}" "${APP_NAME}"
+      verify_app_service_container_deployment "${APP_TYPE}" "${APP_NAME}" "${APP_IMAGE_URL}"
+  env:
+    # TEMPORARY AZURE ACCESS TOKEN :: START
+    # Remove this mapping after Service Principal authentication is enabled.
+    AZURE_ACCESS_TOKEN: ${{ parameters.azure_access_token }}
+    # TEMPORARY AZURE ACCESS TOKEN :: END
+    AZURE_AUTHENTICATION_METHOD: ${{ parameters.azure_authentication_method }}
+    AZURE_SUBSCRIPTION_ID: ${{ parameters.subscription_id }}
+    RESOURCE_GROUP: ${{ parameters.resource_group }}
+    APP_TYPE: ${{ parameters.app_type }}
+    APP_NAME: ${{ parameters.app_name }}
+    ACR_NAME: ${{ parameters.acr_name }}
+    IMAGE_NAME: ${{ parameters.image_name }}
+    IMAGE_TAG: ${{ parameters.image_tag }}

@@ -1,39 +1,53 @@
-# Define AZURE_CLIENT_SECRET as a secret variable in Azure DevOps.
+parameters:
+- name: gubun
+  displayName: Environment (for ITSM)
+  type: string
+  default: environment
+- name: KEY
+  displayName: Branch (for ITSM)
+  type: string
+  default: Branch
+# TEMPORARY AZURE ACCESS TOKEN :: START
+# Remove this parameter after Service Principal authentication is enabled.
+- name: azure_access_token
+  displayName: Azure Resource Manager access token
+  type: string
+# TEMPORARY AZURE ACCESS TOKEN :: END
+
 trigger: none
 
-parameters:
-- name: agentPoolName
-  displayName: Self-hosted Linux agent pool
-  type: string
-  default: Default
-
 variables:
-  AZURE_TENANT_ID: 'eef21324-3a79-4bc1-af76-43b693f2f061'
-  AZURE_CLIENT_ID: '17327f99-df92-446c-b385-b13d645676ce'
-  AZURE_AUTHENTICATION_METHOD: 'client_secret'
-  AZURE_SCOPE: 'https://management.azure.com/.default'
-  AZURE_SUBSCRIPTION_ID: 'd423337a-8a9a-43fd-891c-4f57161bc69d'
-  RESOURCE_GROUP: 'RG_00001_Public-App-Service_DV01'
-  APP_TYPE: 'Function App'
-  APP_NAME: 'fpy00001kcdv0101'
-  APP_IMAGE_URL: 'acr00001kcdv0101.azurecr.io/document-vectorizer-function-app:20260915-01'
+- name: imageTag
+  value: ${{ parameters.KEY }}
 
 stages:
-- stage: Deploy
-  displayName: Deploy App Service
+- stage: CD
+  displayName: CD stage Dev ENV
   jobs:
-  - job: DeployAppService
-    displayName: Deploy and inspect container logs
-    timeoutInMinutes: 40
-    pool:
-      name: ${{ parameters.agentPoolName }}
-      demands:
-      - Agent.OS -equals Linux
-    steps:
-    - checkout: self
-    - template: templates/deploy-app.yml
-      parameters:
-        timeoutInMinutes: 30
-    - template: templates/get-app-container-logs.yml
-      parameters:
-        timeoutInMinutes: 5
+  - deployment: Deploy
+    displayName: Deploy App Service container
+    environment: app-service-np
+    # TEMPORARY AZURE ACCESS TOKEN :: START
+    # Remove this condition after Service Principal authentication is enabled.
+    condition: and(succeeded(), ne('${{ parameters.azure_access_token }}', ''))
+    # TEMPORARY AZURE ACCESS TOKEN :: END
+    timeoutInMinutes: '40'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+          - template: templates/deploy-app-service.yml
+            parameters:
+              # TEMPORARY AZURE ACCESS TOKEN :: START
+              # Remove this mapping after Service Principal authentication is enabled.
+              azure_access_token: ${{ parameters.azure_access_token }}
+              # TEMPORARY AZURE ACCESS TOKEN :: END
+              timeout_in_minutes: 10
+              subscription_id: 'd423337a-8a9a-43fd-891c-4f57161bc69d'
+              resource_group: 'RG_00001_Public-App-Service_DV01'
+              app_type: 'Function App'
+              app_name: 'fpy00001kcdv0101'
+              acr_name: 'acr00001kcdv0101'
+              image_name: 'document-vectorizer-function-app'
+              image_tag: $(imageTag)
