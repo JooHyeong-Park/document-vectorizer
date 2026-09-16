@@ -1,100 +1,102 @@
 parameters:
-# TEMPORARY AZURE ACCESS TOKEN :: START
-# Remove this parameter after Service Principal authentication is enabled.
-- name: azure_access_token
-  type: string
-# TEMPORARY AZURE ACCESS TOKEN :: END
-- name: timeout_in_minutes
-  type: number
-  default: 5
-- name: azure_authentication_method
-  type: string
-  default: client_secret
-- name: subscription_id
-  type: string
-- name: resource_group
-  type: string
-- name: app_type
-  type: string
-- name: app_name
-  type: string
-- name: http_proxy_url
-  type: string
-  default: 'http://192.168.150.187:3128'
-- name: https_proxy_url
-  type: string
-  default: 'http://192.168.150.187:3128'
-- name: no_proxy_base_url
-  type: string
-  default: 'artifactoryproxy.metlife.co.kr,localhost,127.0.0.1'
+  # TEMPORARY AZURE ACCESS TOKEN :: START
+  # Remove this parameter after Service Principal authentication is enabled.
+  - name: azure_access_token
+    type: string
+  # TEMPORARY AZURE ACCESS TOKEN :: END
+  - name: timeout_in_minutes
+    type: number
+    default: 5
+  - name: azure_authentication_method
+    type: string
+    default: client_secret
+  - name: subscription_id
+    type: string
+  - name: resource_group
+    type: string
+  - name: app_type
+    type: string
+  - name: app_name
+    type: string
+  ## Proxy
+  - name: http_proxy_url
+    type: string
+    default: 'http://192.168.150.187:3128'
+  - name: https_proxy_url
+    type: string
+    default: 'http://192.168.150.187:3128'
+  - name: no_proxy_base_url
+    type: string
+    default: 'artifactoryproxy.metlife.co.kr,localhost,127.0.0.1'
 
 steps:
-- task: Bash@3
-  displayName: Get App Service container logs
-  condition: always()
-  timeoutInMinutes: ${{ parameters.timeout_in_minutes }}
-  inputs:
-    targetType: inline
-    workingDirectory: '$(Build.SourcesDirectory)'
-    script: |
-      LOG_REQUEST_TIMEOUT_SECONDS=120
+  - task: Bash@3
+    displayName: Get App Service container logs
+    condition: always()
+    timeoutInMinutes: ${{ parameters.timeout_in_minutes }}
+    inputs:
+      targetType: inline
+      workingDirectory: '$(Build.SourcesDirectory)'
+      script: |
+        LOG_REQUEST_TIMEOUT_SECONDS=120
 
-      source ./templates/_auth.sh
-      login_by_service_principal "${AZURE_AUTHENTICATION_METHOD}"
+        source ./templates/_auth.sh
+        login_by_service_principal "${AZURE_AUTHENTICATION_METHOD}"
 
-      ARM_API_VERSION='2026-07-15'
-      container_logs_url="https://management.azure.com/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Web/sites/${APP_NAME}/containerlogs?api-version=${ARM_API_VERSION}"
-      temporary_directory="$(mktemp -d)"
-      logs_file="${temporary_directory}/document-vectorizer-${APP_NAME}-container-logs.txt"
+        ARM_API_VERSION='2026-07-15'
+        container_logs_url="https://management.azure.com/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Web/sites/${APP_NAME}/containerlogs?api-version=${ARM_API_VERSION}"
+        temporary_directory="$(mktemp -d)"
+        logs_file="${temporary_directory}/document-vectorizer-${APP_NAME}-container-logs.txt"
 
-      if ! http_status="$(curl \
-        --silent \
-        --show-error \
-        --connect-timeout "${AZURE_CONNECT_TIMEOUT_SECONDS}" \
-        --max-time "${LOG_REQUEST_TIMEOUT_SECONDS}" \
-        --request POST \
-        --header "Authorization: Bearer ${AZURE_ACCESS_TOKEN}" \
-        --header 'Content-Length: 0' \
-        --header 'Accept: application/octet-stream' \
-        --output "${logs_file}" \
-        --write-out '%{http_code}' \
-        "${container_logs_url}")"; then
-        rm -rf -- "${temporary_directory}"
-        exit 1
-      fi
-
-      case "${http_status}" in
-        200)
-          printf '[INFO] %s container logs: %s\n' "${APP_TYPE}" "${APP_NAME}"
-          if [[ -s "${logs_file}" ]]; then
-            cat "${logs_file}"
-          else
-            printf '[INFO] Container Logs API returned no log content\n'
-          fi
-          ;;
-        204)
-          printf '[INFO] Container Logs API returned no content: %s %s\n' "${APP_TYPE}" "${APP_NAME}"
-          ;;
-        *)
-          error_body="$(<"${logs_file}")"
-          printf '[ERROR] Get %s container logs failed (HTTP %s)\n%s\n' \
-            "${APP_TYPE}" "${http_status}" "${error_body}" >&2
+        if ! http_status="$(curl \
+          --silent \
+          --show-error \
+          --connect-timeout "${AZURE_CONNECT_TIMEOUT_SECONDS}" \
+          --max-time "${LOG_REQUEST_TIMEOUT_SECONDS}" \
+          --request POST \
+          --header "Authorization: Bearer ${AZURE_ACCESS_TOKEN}" \
+          --header 'Content-Length: 0' \
+          --header 'Accept: application/octet-stream' \
+          --output "${logs_file}" \
+          --write-out '%{http_code}' \
+          "${container_logs_url}")"; then
           rm -rf -- "${temporary_directory}"
           exit 1
-          ;;
-      esac
+        fi
 
-      rm -rf -- "${temporary_directory}"
-  env:
-    # TEMPORARY AZURE ACCESS TOKEN :: START
-    # Remove this mapping after Service Principal authentication is enabled.
-    AZURE_ACCESS_TOKEN: ${{ parameters.azure_access_token }}
-    # TEMPORARY AZURE ACCESS TOKEN :: END
-    AZURE_AUTHENTICATION_METHOD: ${{ parameters.azure_authentication_method }}
-    AZURE_SUBSCRIPTION_ID: ${{ parameters.subscription_id }}
-    RESOURCE_GROUP: ${{ parameters.resource_group }}
-    APP_TYPE: ${{ parameters.app_type }}
-    APP_NAME: ${{ parameters.app_name }}
-    HTTP_PROXY: ${{ parameters.http_proxy_url }}
-    HTTPS_PROXY: ${{ parameters.https_proxy_url }}
-    NO_PROXY: ${{ parameters.no_proxy_base_url }}
+        case "${http_status}" in
+          200)
+            printf '[INFO] %s '%s' container logs\n' "${APP_TYPE}" "${APP_NAME}"
+            if [[ -s "${logs_file}" ]]; then
+              cat "${logs_file}"
+            else
+            printf '[INFO] Container Logs API returned no content :: Target %s '%s'\n' "${APP_TYPE}" "${APP_NAME}"
+            fi
+            ;;
+          204)
+            printf '[INFO] Container Logs API returned no content :: Target %s '%s'\n' "${APP_TYPE}" "${APP_NAME}"
+            ;;
+          *)
+            error_body="$(<"${logs_file}")"
+            printf '[ERROR] Get %s '%s' container logs failed (http status %s)\n%s\n' \
+              "${APP_TYPE}" "${APP_NAME}" "${http_status}" "${error_body}" >&2
+            rm -rf -- "${temporary_directory}"
+            exit 1
+            ;;
+        esac
+
+        rm -rf -- "${temporary_directory}"
+    env:
+      # TEMPORARY AZURE ACCESS TOKEN :: START
+      # Remove this mapping after Service Principal authentication is enabled.
+      AZURE_ACCESS_TOKEN: ${{ parameters.azure_access_token }}
+      # TEMPORARY AZURE ACCESS TOKEN :: END
+      AZURE_AUTHENTICATION_METHOD: ${{ parameters.azure_authentication_method }}
+      AZURE_SUBSCRIPTION_ID: ${{ parameters.subscription_id }}
+      RESOURCE_GROUP: ${{ parameters.resource_group }}
+      APP_TYPE: ${{ parameters.app_type }}
+      APP_NAME: ${{ parameters.app_name }}
+      ## Proxy
+      HTTP_PROXY: ${{ parameters.http_proxy_url }}
+      HTTPS_PROXY: ${{ parameters.https_proxy_url }}
+      NO_PROXY: ${{ parameters.no_proxy_base_url }}

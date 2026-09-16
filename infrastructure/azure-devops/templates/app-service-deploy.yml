@@ -1,74 +1,76 @@
 parameters:
-# TEMPORARY AZURE ACCESS TOKEN :: START
-# Remove this parameter after Service Principal authentication is enabled.
-- name: azure_access_token
-  type: string
-# TEMPORARY AZURE ACCESS TOKEN :: END
-- name: timeout_in_minutes
-  type: number
-  default: 30
-- name: azure_authentication_method
-  type: string
-  default: client_secret
-- name: subscription_id
-  type: string
-- name: resource_group
-  type: string
-- name: app_type
-  type: string
-- name: app_name
-  type: string
-- name: acr_name
-  type: string
-- name: image_name
-  type: string
-- name: image_tag
-  type: string
-- name: http_proxy_url
-  type: string
-  default: 'http://192.168.150.187:3128'
-- name: https_proxy_url
-  type: string
-  default: 'http://192.168.150.187:3128'
-- name: no_proxy_base_url
-  type: string
-  default: 'artifactoryproxy.metlife.co.kr,localhost,127.0.0.1'
+  # TEMPORARY AZURE ACCESS TOKEN :: START
+  # Remove this parameter after Service Principal authentication is enabled.
+  - name: azure_access_token
+    type: string
+  # TEMPORARY AZURE ACCESS TOKEN :: END
+  - name: timeout_in_minutes
+    type: number
+    default: 30
+  - name: azure_authentication_method
+    type: string
+    default: client_secret
+  - name: subscription_id
+    type: string
+  - name: resource_group
+    type: string
+  - name: app_type
+    type: string
+  - name: app_name
+    type: string
+  - name: acr_name
+    type: string
+  - name: image_name
+    type: string
+  - name: image_tag
+    type: string
+  ## Proxy
+  - name: http_proxy_url
+    type: string
+    default: 'http://192.168.150.187:3128'
+  - name: https_proxy_url
+    type: string
+    default: 'http://192.168.150.187:3128'
+  - name: no_proxy_base_url
+    type: string
+    default: 'artifactoryproxy.metlife.co.kr,localhost,127.0.0.1'
 
 steps:
-- task: Bash@3
-  displayName: Deploy App Service container
-  timeoutInMinutes: ${{ parameters.timeout_in_minutes }}
-  inputs:
-    targetType: inline
-    workingDirectory: '$(Build.SourcesDirectory)'
-    script: |
-      source ./templates/_auth.sh
-      source ./templates/_deploy-app-service.sh
+  - task: Bash@3
+    displayName: Deploy App Service container
+    timeoutInMinutes: ${{ parameters.timeout_in_minutes }}
+    inputs:
+      targetType: inline
+      workingDirectory: '$(Build.SourcesDirectory)'
+      script: |
+        source ./templates/_auth.sh
+        source ./templates/_deploy-app-service.sh
 
-      printf '[INFO] Deployment target: resource_group=%s type=%s app=%s\n' \
-        "${RESOURCE_GROUP}" "${APP_TYPE}" "${APP_NAME}"
+        printf '[INFO] Deployment target :: resource_group=%s type=%s app=%s\n' \
+          "${RESOURCE_GROUP}" "${APP_TYPE}" "${APP_NAME}"
 
-      login_by_service_principal "${AZURE_AUTHENTICATION_METHOD}"
+        login_by_service_principal "${AZURE_AUTHENTICATION_METHOD}"
 
-      APP_IMAGE_URL="${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}"
-      printf '[INFO] Container image selected: %s\n' "${APP_IMAGE_URL}"
-      printf '[INFO] Starting App Service container deployment\n'
-      update_app_service_container_configuration "${APP_TYPE}" "${APP_NAME}" "${APP_IMAGE_URL}"
-      restart_app_service "${APP_TYPE}" "${APP_NAME}"
-      verify_app_service_container_deployment "${APP_TYPE}" "${APP_NAME}" "${APP_IMAGE_URL}"
-  env:
-    # TEMPORARY AZURE ACCESS TOKEN :: START
-    # Remove this mapping after Service Principal authentication is enabled.
-    AZURE_ACCESS_TOKEN: ${{ parameters.azure_access_token }}
-    # TEMPORARY AZURE ACCESS TOKEN :: END
-    AZURE_AUTHENTICATION_METHOD: ${{ parameters.azure_authentication_method }}
-    AZURE_SUBSCRIPTION_ID: ${{ parameters.subscription_id }}
-    RESOURCE_GROUP: ${{ parameters.resource_group }}
-    APP_TYPE: ${{ parameters.app_type }}
-    APP_NAME: ${{ parameters.app_name }}
-    ACR_NAME: ${{ parameters.acr_name }}
-    IMAGE_NAME: ${{ parameters.image_name }}
-    IMAGE_TAG: ${{ parameters.image_tag }}
-    HTTP_PROXY: ${{ parameters.http_proxy_url }}
-    HTTPS_PROXY: ${{ parameters.https_proxy_url }}
-    NO_PROXY: ${{ parameters.no_proxy_base_url }}
+        APP_IMAGE_URL="${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}"
+        printf '[INFO] Starting App Service container deployment by '%s'\n' "${APP_IMAGE_URL}""
+
+        update_app_service_container_configuration "${APP_TYPE}" "${APP_NAME}" "${APP_IMAGE_URL}"
+        restart_app_service "${APP_TYPE}" "${APP_NAME}"
+        verify_app_service_container_deployment "${APP_TYPE}" "${APP_NAME}" "${APP_IMAGE_URL}"
+    env:
+      # TEMPORARY AZURE ACCESS TOKEN :: START
+      # Remove this mapping after Service Principal authentication is enabled.
+      AZURE_ACCESS_TOKEN: ${{ parameters.azure_access_token }}
+      # TEMPORARY AZURE ACCESS TOKEN :: END
+      AZURE_AUTHENTICATION_METHOD: ${{ parameters.azure_authentication_method }}
+      AZURE_SUBSCRIPTION_ID: ${{ parameters.subscription_id }}
+      RESOURCE_GROUP: ${{ parameters.resource_group }}
+      APP_TYPE: ${{ parameters.app_type }}
+      APP_NAME: ${{ parameters.app_name }}
+      ACR_NAME: ${{ parameters.acr_name }}
+      IMAGE_NAME: ${{ parameters.image_name }}
+      IMAGE_TAG: ${{ parameters.image_tag }}
+      ## Proxy
+      HTTP_PROXY: ${{ parameters.http_proxy_url }}
+      HTTPS_PROXY: ${{ parameters.https_proxy_url }}
+      NO_PROXY: ${{ parameters.no_proxy_base_url }}
