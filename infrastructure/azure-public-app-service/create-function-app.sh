@@ -254,6 +254,7 @@ if [[ "${FUNCTION_APP_EXISTS}" == false ]]; then
     --functions-version 4 \
     --runtime custom \
     --os-type Linux \
+    --https-only true \
     --configure-networking-later \
     --disable-app-insights \
     --tags "${TAGS[@]}" \
