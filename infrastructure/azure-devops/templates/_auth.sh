@@ -53,7 +53,7 @@ get_access_token_by_client_secret() {
   if [[ "${http_status}" != '200' ]]; then
     local error_description
     error_description="$(extract_json_string "${token_body}" 'error_description')"
-    printf '[ERROR] Service Principal authentication failed :: http status '%s': %s\n' \
+    printf "[ERROR] Service Principal authentication failed :: http status '%s': %s\n" \
       "${http_status}" "${error_description:-Token request failed}" >&2
     return 1
   fi
@@ -141,7 +141,7 @@ get_access_token_by_client_certificate() {
   if [[ "${http_status}" != '200' ]]; then
     local error_description
     error_description="$(extract_json_string "${token_body}" 'error_description')"
-    printf '[ERROR] Certificate authentication failed :: http status '%s': %s\n' \
+    printf "[ERROR] Certificate authentication failed :: http status '%s': %s\n" \
       "${http_status}" "${error_description:-Token request failed}" >&2
     return 1
   fi

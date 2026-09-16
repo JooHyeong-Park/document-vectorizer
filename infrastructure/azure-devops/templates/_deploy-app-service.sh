@@ -47,7 +47,7 @@ arm_request() {
   unset response
 
   if [[ ! "${http_status}" =~ ^2[0-9][0-9]$ ]]; then
-    printf '[ERROR] ARM '%s' request failed :: http status '%s'\n%s\n' \
+    printf "[ERROR] ARM '%s' request failed :: http status '%s'\n%s\n" \
       "${method}" "${http_status}" "${response_body}" >&2
     return 1
   fi
@@ -63,7 +63,7 @@ update_app_service_container_configuration() {
   local image_url=$3
   local app_url="https://management.azure.com/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Web/sites/${app_name}"
 
-  printf '[INFO] Updating %s '%s' container configuration -> linuxFxVersion=%s\n' \
+  printf "[INFO] Updating %s '%s' container configuration -> linuxFxVersion=%s\n" \
     "${app_type}" "${app_name}" "DOCKER|${image_url}"
   arm_request PATCH "${app_url}/config/web?api-version=${ARM_API_VERSION}" \
     "{\"properties\":{\"linuxFxVersion\":\"DOCKER|${image_url}\"}}" >/dev/null
@@ -75,7 +75,7 @@ restart_app_service() {
   local app_name=$2
   local app_url="https://management.azure.com/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Web/sites/${app_name}"
 
-  printf '[INFO] Restarting %s '%s' (synchronous=true)\n' "${app_type}" "${app_name}"
+  printf "[INFO] Restarting %s '%s' (synchronous=true)\n" "${app_type}" "${app_name}"
   arm_request \
     POST \
     "${app_url}/restart?api-version=${ARM_API_VERSION}&synchronous=true" >/dev/null
@@ -103,7 +103,7 @@ verify_app_service_container_deployment() {
       "${attempt}" "${app_type}" "${app_name}" "${actual_state}" "${actual_linuxFxVersion}" "${expected_linuxFxVersion}"
 
     if [[ "${actual_state}" == 'Running' && "${actual_linuxFxVersion}" == "${expected_linuxFxVersion}" ]]; then
-      printf '[SUCCESS] %s '%s' deployment verified\n  - actual_state=%s\n  - actual_linuxFxVersion=%s\n' \
+      printf "[SUCCESS] %s '%s' deployment verified\n  - actual_state=%s\n  - actual_linuxFxVersion=%s\n" \
         "${app_type}" "${app_name}" "${actual_state}" "${actual_linuxFxVersion}"
       return 0
     fi
