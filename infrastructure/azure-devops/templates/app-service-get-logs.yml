@@ -66,19 +66,19 @@ steps:
 
         case "${http_status}" in
           200)
-            printf '[INFO] %s '%s' container logs\n' "${APP_TYPE}" "${APP_NAME}"
+            printf "[INFO] %s '%s' container logs\n" "${APP_TYPE}" "${APP_NAME}"
             if [[ -s "${logs_file}" ]]; then
               cat "${logs_file}"
             else
-            printf '[INFO] Container Logs API returned no content :: Target %s '%s'\n' "${APP_TYPE}" "${APP_NAME}"
+            printf "[INFO] Container Logs API returned no content :: Target %s '%s'\n" "${APP_TYPE}" "${APP_NAME}"
             fi
             ;;
           204)
-            printf '[INFO] Container Logs API returned no content :: Target %s '%s'\n' "${APP_TYPE}" "${APP_NAME}"
+            printf "[INFO] Container Logs API returned no content :: Target %s '%s'\n" "${APP_TYPE}" "${APP_NAME}"
             ;;
           *)
             error_body="$(<"${logs_file}")"
-            printf '[ERROR] Get %s '%s' container logs failed (http status %s)\n%s\n' \
+            printf "[ERROR] Get %s '%s' container logs failed (http status %s)\n%s\n" \
               "${APP_TYPE}" "${APP_NAME}" "${http_status}" "${error_body}" >&2
             rm -rf -- "${temporary_directory}"
             exit 1
