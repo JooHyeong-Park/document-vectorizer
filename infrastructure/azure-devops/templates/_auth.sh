@@ -164,7 +164,7 @@ login_by_service_principal() {
 
   # TEMPORARY AZURE ACCESS TOKEN :: START
   # Remove this block after Service Principal authentication is enabled.
-  if [[ -n "${AZURE_ACCESS_TOKEN:-}" ]]; then
+  if [[ -n "${AZURE_ACCESS_TOKEN:-}" && "${AZURE_ACCESS_TOKEN}" != '__NOT_PROVIDED__' ]]; then
     printf '[INFO] Using the Azure access token supplied at pipeline execution\n'
     return 0
   fi

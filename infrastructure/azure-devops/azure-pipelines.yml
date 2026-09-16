@@ -12,8 +12,8 @@ parameters:
 - name: azure_access_token
   displayName: Azure Resource Manager access token
   type: string
+  default: '__NOT_PROVIDED__'
 # TEMPORARY AZURE ACCESS TOKEN :: END
-
 trigger: none
 
 variables:
@@ -29,7 +29,7 @@ stages:
     environment: app-service-np
     # TEMPORARY AZURE ACCESS TOKEN :: START
     # Remove this condition after Service Principal authentication is enabled.
-    condition: and(succeeded(), ne('${{ parameters.azure_access_token }}', ''))
+    condition: and(succeeded(), ne('${{ parameters.azure_access_token }}', '__NOT_PROVIDED__'), ne('${{ parameters.azure_access_token }}', ''))
     # TEMPORARY AZURE ACCESS TOKEN :: END
     timeoutInMinutes: '40'
     strategy:
@@ -37,7 +37,7 @@ stages:
         deploy:
           steps:
           - checkout: self
-          - template: templates/deploy-app-service.yml
+          - template: templates/app-service-deploy.yml
             parameters:
               # TEMPORARY AZURE ACCESS TOKEN :: START
               # Remove this mapping after Service Principal authentication is enabled.

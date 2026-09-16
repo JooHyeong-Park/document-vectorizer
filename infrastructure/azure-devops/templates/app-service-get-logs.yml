@@ -18,6 +18,15 @@ parameters:
   type: string
 - name: app_name
   type: string
+- name: http_proxy_url
+  type: string
+  default: 'http://192.168.150.187:3128'
+- name: https_proxy_url
+  type: string
+  default: 'http://192.168.150.187:3128'
+- name: no_proxy_base_url
+  type: string
+  default: 'artifactoryproxy.metlife.co.kr,localhost,127.0.0.1'
 
 steps:
 - task: Bash@3
@@ -86,3 +95,6 @@ steps:
     RESOURCE_GROUP: ${{ parameters.resource_group }}
     APP_TYPE: ${{ parameters.app_type }}
     APP_NAME: ${{ parameters.app_name }}
+    HTTP_PROXY: ${{ parameters.http_proxy_url }}
+    HTTPS_PROXY: ${{ parameters.https_proxy_url }}
+    NO_PROXY: ${{ parameters.no_proxy_base_url }}
